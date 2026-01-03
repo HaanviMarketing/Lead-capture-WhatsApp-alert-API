@@ -11,6 +11,9 @@ app.use('/api/leads', leadsRouter);
 const webhooks = require('./routes/webhooks');
 app.use('/webhooks', express.json(), webhooks);
 
+const preview = require('./routes/preview');
+app.use('/api', express.json(), preview);
+
 app.get('/', (req, res) => res.json({ status: 'ok' }));
 
 module.exports = app;
