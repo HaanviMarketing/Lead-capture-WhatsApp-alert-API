@@ -48,7 +48,29 @@ router.post('/meta', (req, res) => {
     return res.sendStatus(400);
   }
 
-  // handle webhook payload (log + TODO: persist or process)
+  // handle webhook payload: persist event and any delivery statuses
+  try {
+    const db = require('../db');
+    db.addWebhookEvent(parsed);
+
+    // traverse entries/changes and collect statuses if present
+    const entries = parsed.entry || [];
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      for (const change of changes) {
+        const value = change.value || {};
+        const statuses = value.statuses || value.status || null;
+        if (Array.isArray(statuses)) {
+          for (const s of statuses) {
+            db.addDeliveryStatus(s);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to persist webhook event/status', e && e.message);
+  }
+
   console.log('Meta webhook received:', JSON.stringify(parsed));
   return res.sendStatus(200);
 });

@@ -15,6 +15,11 @@ app.use('/api/leads', leadsRouter);
 const preview = require('./routes/preview');
 app.use('/api', express.json(), preview);
 
+// Admin routes (protected by ADMIN_API_KEY)
+const adminAuth = require('./middleware/adminAuth');
+const adminRoutes = require('./routes/admin');
+app.use('/admin', express.json(), adminAuth, adminRoutes);
+
 app.get('/', (req, res) => res.json({ status: 'ok' }));
 
 module.exports = app;
