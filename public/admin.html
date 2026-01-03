@@ -4,65 +4,178 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Leads Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-      body{font-family:Inter,system-ui,Segoe UI,Helvetica,Arial;color:#222;margin:20px}
-      .row{display:flex;gap:8px;align-items:center}
-      input,button{padding:8px;font-size:14px}
-      pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow:auto}
+      :root{--bg:#0f172a;--card:#0b1220;--muted:#9aa4b2;--accent:#06b6d4;--glass:rgba(255,255,255,0.03)}
+      html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Helvetica,Arial,apple-system;color:#e6eef6;background:linear-gradient(180deg,#071126 0%, #07192a 100%)}
+      .container{max-width:1100px;margin:28px auto;padding:20px}
+      header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+      h1{margin:0;font-weight:600;color:#fff}
+      .controls{display:flex;gap:10px;align-items:center}
+      .input{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px 12px;border-radius:8px;color:#e6eef6;min-width:320px}
+      .btn{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;color:#042027;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+      .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+      .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.03)}
+      .search{display:flex;gap:8px;margin-bottom:12px}
+      .list{max-height:56vh;overflow:auto}
+      pre{background:transparent;color:#cfe9ff;padding:10px;border-radius:8px;font-size:13px;margin:8px 0;border:1px solid rgba(255,255,255,0.02)}
+      .tabs{display:flex;gap:8px;margin-bottom:12px}
+      .tab{padding:8px 12px;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
+      .tab.active{background:rgba(255,255,255,0.03);color:#fff}
+      footer{margin-top:18px;color:var(--muted);font-size:13px}
+      @media(max-width:880px){.grid{grid-template-columns:1fr} .input{min-width:160px}}
     </style>
   </head>
   <body>
-    <h1>Leads & Delivery Statuses</h1>
-    <div class="row">
-      <label for="key">Admin API Key</label>
-      <input id="key" placeholder="Paste ADMIN_API_KEY here (x-admin-key or Bearer)" style="flex:1" />
-      <button id="load">Load</button>
+    <div class="container">
+      <header>
+        <h1>Leads Dashboard</h1>
+        <div class="controls">
+          <input id="key" class="input" placeholder="Admin API Key (x-admin-key or Bearer)" />
+          <button id="load" class="btn">Load</button>
+          <button id="saveKey" class="btn" style="background:#1f2937;color:#fff">Save</button>
+          <button id="copyKey" class="btn" style="background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)">Copy</button>
+        </div>
+      </header>
+
+      <div class="grid">
+        <section>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <strong style="color:#fff">Leads</strong>
+              <div style="color:var(--muted);font-size:13px" id="counts">0 leads</div>
+            </div>
+            <div class="search">
+              <input id="q" class="input" placeholder="Search name, email, phone" style="flex:1" />
+              <select id="filter" class="input" style="width:120px">
+                <option value="all">All</option>
+                <option value="recent">Recent</option>
+              </select>
+            </div>
+            <div class="list" id="leads"></div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <strong style="color:#fff">Webhook Events</strong>
+              <div style="color:var(--muted);font-size:13px" id="eventsCount">0</div>
+            </div>
+            <div class="list" id="events"></div>
+          </div>
+        </section>
+
+        <aside>
+          <div class="card">
+            <strong style="color:#fff">Delivery Statuses</strong>
+            <div style="color:var(--muted);font-size:13px;margin-top:8px">Statuses received from provider</div>
+            <div class="list" id="statuses" style="margin-top:12px"></div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <strong style="color:#fff">Actions</strong>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+              <button id="refresh" class="btn">Refresh</button>
+              <button id="clear" class="btn" style="background:#ef4444;color:#fff">Clear UI</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer>Local admin UI — keys are not stored. Use in secure environment only.</footer>
     </div>
-
-    <h2>Leads</h2>
-    <div id="leads"></div>
-
-    <h2>Delivery Statuses</h2>
-    <div id="statuses"></div>
-
-    <h2>Webhook Events</h2>
-    <div id="events"></div>
 
     <script>
       const $ = (id) => document.getElementById(id);
-      function renderList(el, items){
-        if(!items || !items.length){ el.innerHTML = '<em>None</em>'; return }
-        el.innerHTML = '';
-        items.forEach(it => {
-          const pre = document.createElement('pre');
-          pre.textContent = JSON.stringify(it, null, 2);
-          el.appendChild(pre);
+      let DATA = { leads: [], deliveryStatuses: [], webhookEvents: [] };
+
+      function renderLeads(list){
+        const el = $('leads'); el.innerHTML = '';
+        if(!list || list.length===0){ el.innerHTML = '<div style="color:var(--muted)">No leads</div>'; return }
+        $('counts').textContent = `${list.length} leads`;
+        list.forEach(l => {
+          const div = document.createElement('div');
+          div.style.padding = '10px'; div.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
+          div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong style="color:#fff">${escapeHtml(l.name)}</strong><div style="color:var(--muted);font-size:13px">${escapeHtml(l.email)} • ${escapeHtml(l.phone)}</div></div>
+            <div style="color:var(--muted);font-size:12px">${new Date(l.createdAt).toLocaleString()}</div>
+          </div>
+          <div style="margin-top:8px"><pre>${escapeHtml(l.message || '')}</pre></div>`;
+          el.appendChild(div);
         });
       }
 
-      async function load() {
-        const key = $('key').value.trim();
-        if(!key){ alert('Enter admin key'); return }
-        const headers = { 'x-admin-key': key };
-        if(key.toLowerCase().startsWith('bearer ')){
-          headers['authorization'] = key;
-        }
-
-        try{
-          const res = await fetch('/admin/leads',{ headers });
-          if(res.status===401 || res.status===403){
-            alert('Unauthorized - check ADMIN_API_KEY');
-            return;
-          }
-          const data = await res.json();
-          renderList($('leads'), data.leads || []);
-          renderList($('statuses'), data.deliveryStatuses || []);
-          renderList($('events'), data.webhookEvents || []);
-        }catch(e){
-          alert('Failed to load: '+e.message);
-        }
+      function renderStatuses(list){
+        const el = $('statuses'); el.innerHTML='';
+        if(!list || list.length===0){ el.innerHTML = '<div style="color:var(--muted)">No statuses</div>'; return }
+        list.slice().reverse().forEach(s => {
+          const pre = document.createElement('pre'); pre.textContent = JSON.stringify(s, null, 2); el.appendChild(pre);
+        });
       }
-      $('load').addEventListener('click', load);
+
+      function renderEvents(list){
+        const el = $('events'); el.innerHTML='';
+        $('eventsCount').textContent = (list||[]).length;
+        if(!list || list.length===0){ el.innerHTML = '<div style="color:var(--muted)">No events</div>'; return }
+        list.slice().reverse().forEach(e => { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(e, null, 2); el.appendChild(pre); });
+      }
+
+      function escapeHtml(s){ return String(s).replace(/[&<>]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+
+      async function fetchData(){
+        const key = $('key').value.trim(); if(!key){ alert('Enter admin key'); return; }
+        const headers = { 'x-admin-key': key };
+        if(key.toLowerCase().startsWith('bearer ')) headers['authorization'] = key;
+        const res = await fetch('/admin/leads', { headers });
+        if(res.status===401 || res.status===403){ alert('Unauthorized'); return; }
+        const data = await res.json();
+        DATA = data;
+        renderLeads(DATA.leads || []);
+        renderStatuses(DATA.deliveryStatuses || []);
+        renderEvents(DATA.webhookEvents || []);
+      }
+
+      $('load').addEventListener('click', fetchData);
+      $('refresh').addEventListener('click', fetchData);
+      $('clear').addEventListener('click', ()=>{ $('leads').innerHTML=''; $('statuses').innerHTML=''; $('events').innerHTML=''; $('counts').textContent='0 leads'; });
+
+      // save key to localStorage
+      $('saveKey').addEventListener('click', ()=>{
+        const v = $('key').value.trim();
+        if(!v){ alert('Enter a key first'); return }
+        try{ localStorage.setItem('adminKey', v); alert('Admin key saved to localStorage'); }catch(e){ alert('Save failed: '+e.message) }
+      });
+
+      // copy key to clipboard
+      $('copyKey').addEventListener('click', async ()=>{
+        const v = $('key').value.trim();
+        if(!v){ alert('No key to copy'); return }
+        try{
+          await navigator.clipboard.writeText(v);
+          alert('Copied to clipboard');
+        }catch(e){
+          // fallback
+          const ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select();
+          try{ document.execCommand('copy'); alert('Copied to clipboard'); }catch(err){ alert('Copy failed'); }
+          ta.remove();
+        }
+      });
+
+      // quick search filter
+      $('q').addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase();
+        const filtered = (DATA.leads||[]).filter(x => [x.name,x.email,x.phone].join(' ').toLowerCase().includes(q));
+        renderLeads(filtered);
+      });
+
+      // prefill key from localStorage if present
+      document.addEventListener('DOMContentLoaded', ()=>{
+        try{
+          const saved = localStorage.getItem('adminKey');
+          if(saved) $('key').value = saved;
+        }catch(e){}
+      });
     </script>
   </body>
 </html>
