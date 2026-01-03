@@ -49,6 +49,13 @@ NOTIFIER_TEMPLATE_LANG=en_US
 NOTIFIER_TEMPLATE_PARAMS=name,email,phone
 ```
 
+Webhook verification
+--------------------
+
+To configure Meta webhook verification set `META_VERIFY_TOKEN` to a value you provide when registering the webhook. Meta will call the GET verification endpoint and expect the `hub.challenge` returned.
+
+For request signing, set `META_APP_SECRET` (your app secret) and the server will validate `X-Hub-Signature-256` for incoming POST webhook calls.
+
 You can override the persistence file with `DATABASE_URL` (defaults to `./data/leads.json`).
 
 Notes
