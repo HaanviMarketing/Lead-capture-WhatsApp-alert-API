@@ -67,3 +67,36 @@ Admin UI
 --------
 
 You can view leads and delivery statuses in the browser at `/admin/ui/admin.html` (e.g. `http://localhost:3000/admin/ui/admin.html`). Paste your `ADMIN_API_KEY` into the input and click "Load" to fetch data.
+
+Vault (server-side encrypted storage)
+------------------------------------
+
+This project includes a simple server-side encrypted vault to store a single secret (for example an API key) used by the admin UI. It uses AES-256-GCM and requires a master key.
+
+- Env vars:
+	- `VAULT_MASTER_KEY` (required) — master key used to derive the encryption key.
+	- `VAULT_FILE` (optional) — path to the vault file (defaults to `data/vault.json`).
+
+- Admin endpoints (require `ADMIN_API_KEY`, send via `x-admin-key` or `Authorization: Bearer <key>`):
+	- `POST /admin/vault` { "key": "secret" } — store encrypted secret on server.
+	- `GET /admin/vault` — retrieve stored secret (returns `{ "key": "..." }`).
+	- `DELETE /admin/vault` — clear stored secret.
+
+- Example (replace `<ADMIN_KEY>` and `<SECRET>`):
+
+```bash
+curl -X POST http://localhost:3000/admin/vault \
+	-H "x-admin-key: <ADMIN_KEY>" \
+	-H "Content-Type: application/json" \
+	-d '{"key":"<SECRET>"}'
+
+curl -X GET http://localhost:3000/admin/vault -H "x-admin-key: <ADMIN_KEY>"
+curl -X DELETE http://localhost:3000/admin/vault -H "x-admin-key: <ADMIN_KEY>"
+```
+
+Security notes:
+- Ensure `VAULT_MASTER_KEY` is set in production. Without it vault endpoints will throw.
+- The vault file is created with restrictive permissions (0600) by default.
+- Prefer storing `VAULT_MASTER_KEY` in a dedicated secrets manager rather than environment variables if possible.
+
+If you want vault master-key rotation or an automated migration helper, I can add a safe rotate endpoint.
