@@ -1,0 +1,13 @@
+{
+  "leads": [
+    {
+      "id": 1,
+      "name": "Jane Doe",
+      "email": "jane@example.com",
+      "phone": "+15551234567",
+      "message": "Interested in your services",
+      "createdAt": "2026-01-03T04:53:20.451Z"
+    }
+  ],
+  "lastId": 1
+}
