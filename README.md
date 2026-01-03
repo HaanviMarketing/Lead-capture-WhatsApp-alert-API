@@ -62,3 +62,8 @@ Notes
 -----
 
 If Twilio env vars are not set, sending is a no-op and leads are still persisted locally.
+
+Admin UI
+--------
+
+You can view leads and delivery statuses in the browser at `/admin/ui/admin.html` (e.g. `http://localhost:3000/admin/ui/admin.html`). Paste your `ADMIN_API_KEY` into the input and click "Load" to fetch data.

@@ -20,6 +20,10 @@ const adminAuth = require('./middleware/adminAuth');
 const adminRoutes = require('./routes/admin');
 app.use('/admin', express.json(), adminAuth, adminRoutes);
 
+// Serve admin UI
+const path = require('path');
+app.use('/admin/ui', express.static(path.join(__dirname, '..', 'public')));
+
 app.get('/', (req, res) => res.json({ status: 'ok' }));
 
 module.exports = app;
