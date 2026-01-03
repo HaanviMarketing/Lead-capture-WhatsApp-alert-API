@@ -1,6 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const leadsRouter = require('./routes/leads');
+// Warn if vault master key is missing — vault operations require it
+if (!process.env.VAULT_MASTER_KEY) {
+	console.warn('Warning: VAULT_MASTER_KEY is not set. Server-side vault endpoints will be disabled or throw. Set VAULT_MASTER_KEY to enable encrypted server-side storage.');
+}
 
 const app = express();
 

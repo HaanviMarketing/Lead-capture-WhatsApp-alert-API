@@ -76,8 +76,11 @@
           <div class="card" style="margin-top:14px">
             <strong style="color:#fff">Actions</strong>
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-              <button id="refresh" class="btn">Refresh</button>
-              <button id="clear" class="btn" style="background:#ef4444;color:#fff">Clear UI</button>
+                <button id="refresh" class="btn">Refresh</button>
+                <button id="clear" class="btn" style="background:#ef4444;color:#fff">Clear UI</button>
+                <button id="storeServer" class="btn" style="background:#059669;color:#fff">Store to Server Vault</button>
+                <button id="retrieveServer" class="btn" style="background:#2563eb;color:#fff">Retrieve Server Vault</button>
+                <button id="clearServer" class="btn" style="background:#ef4444;color:#fff">Clear Server Vault</button>
             </div>
           </div>
         </aside>
@@ -175,6 +178,46 @@
           const saved = localStorage.getItem('adminKey');
           if(saved) $('key').value = saved;
         }catch(e){}
+      });
+
+      // server vault actions
+      async function authHeaders(){
+        const key = $('key').value.trim(); if(!key) throw new Error('Enter admin key');
+        const headers = { 'x-admin-key': key, 'content-type': 'application/json' };
+        if(key.toLowerCase().startsWith('bearer ')) headers['authorization'] = key;
+        return headers;
+      }
+
+      $('storeServer').addEventListener('click', async ()=>{
+        try{
+          const headers = await authHeaders();
+          const value = prompt('Paste the secret to store on server vault (it will be encrypted)');
+          if(!value) return;
+          const res = await fetch('/admin/vault', { method: 'POST', headers, body: JSON.stringify({ key: value }) });
+          if(!res.ok){ alert('Failed to store on server'); return }
+          alert('Stored on server vault');
+        }catch(e){ alert(e.message || 'Error'); }
+      });
+
+      $('retrieveServer').addEventListener('click', async ()=>{
+        try{
+          const headers = await authHeaders();
+          const res = await fetch('/admin/vault', { method: 'GET', headers });
+          if(res.status===404){ alert('No secret stored on server'); return }
+          if(!res.ok){ alert('Failed to read from server'); return }
+          const data = await res.json();
+          alert('Server secret: ' + (data.key || '[empty]'));
+        }catch(e){ alert(e.message || 'Error'); }
+      });
+
+      $('clearServer').addEventListener('click', async ()=>{
+        try{
+          const headers = await authHeaders();
+          if(!confirm('Clear server vault?')) return;
+          const res = await fetch('/admin/vault', { method: 'DELETE', headers });
+          if(!res.ok){ alert('Failed to clear server vault'); return }
+          alert('Server vault cleared');
+        }catch(e){ alert(e.message || 'Error'); }
       });
     </script>
   </body>
