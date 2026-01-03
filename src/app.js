@@ -4,13 +4,13 @@ const leadsRouter = require('./routes/leads');
 
 const app = express();
 
+// Mount webhooks first with raw body parser so signature verification can use the raw payload
+const webhooks = require('./routes/webhooks');
+app.use('/webhooks', express.raw({ type: 'application/json' }), webhooks);
+
 app.use(express.json());
 
 app.use('/api/leads', leadsRouter);
-
-const webhooks = require('./routes/webhooks');
-// Use raw body for webhook route so we can verify signatures (X-Hub-Signature-256)
-app.use('/webhooks', express.raw({ type: 'application/json' }), webhooks);
 
 const preview = require('./routes/preview');
 app.use('/api', express.json(), preview);
